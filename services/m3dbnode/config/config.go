@@ -86,6 +86,9 @@ type Configuration struct {
 	// The commit log policy for the node.
 	CommitLog CommitLogPolicy `yaml:"commitlog"`
 
+	// The indexing configuration for the node.
+	Index *IndexingConfiguration `yaml:"index"`
+
 	// The repair policy for repairing in-memory data.
 	Repair RepairPolicy `yaml:"repair"`
 
@@ -189,4 +192,10 @@ type RepairPolicy struct {
 type HashingConfiguration struct {
 	// Murmur32 seed value.
 	Seed uint32 `yaml:"seed"`
+}
+
+// IndexingConfiguration is the configuration for the indexing sub-system.
+type IndexingConfiguration struct {
+	// Enabled or disabled.
+	Enabled bool `yaml:"enabled"`
 }
