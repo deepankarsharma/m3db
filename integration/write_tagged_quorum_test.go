@@ -145,12 +145,18 @@ func TestTaggedAddNodeQuorumOnlyLeavingInitializingUp(t *testing.T) {
 	// No writes succeed to available nodes
 	require.NoError(t, nodes[0].startServer())
 	require.NoError(t, nodes[3].startServer())
+
 	assert.Error(t, testWrite(topology.ConsistencyLevelOne))
-	assert.True(t, numNodesWithTaggedWrite(t, nodes) == 0)
+	numWrites := numNodesWithTaggedWrite(t, []*testSetup{nodes[1], nodes[2]})
+	assert.True(t, numWrites == 0)
+
 	assert.Error(t, testWrite(topology.ConsistencyLevelMajority))
-	assert.True(t, numNodesWithTaggedWrite(t, nodes) == 0)
+	numWrites = numNodesWithTaggedWrite(t, []*testSetup{nodes[1], nodes[2]})
+	assert.True(t, numWrites == 0)
+
 	assert.Error(t, testWrite(topology.ConsistencyLevelAll))
-	assert.True(t, numNodesWithTaggedWrite(t, nodes) == 0)
+	numWrites = numNodesWithTaggedWrite(t, []*testSetup{nodes[1], nodes[2]})
+	assert.True(t, numWrites == 0)
 }
 
 func TestTaggedAddNodeQuorumOnlyOneNormalAndLeavingInitializingUp(t *testing.T) {
@@ -175,12 +181,18 @@ func TestTaggedAddNodeQuorumOnlyOneNormalAndLeavingInitializingUp(t *testing.T) 
 	require.NoError(t, nodes[0].startServer())
 	require.NoError(t, nodes[1].startServer())
 	require.NoError(t, nodes[3].startServer())
+
 	assert.NoError(t, testWrite(topology.ConsistencyLevelOne))
-	assert.True(t, numNodesWithTaggedWrite(t, nodes) == 1)
+	numWrites := numNodesWithTaggedWrite(t, []*testSetup{nodes[1], nodes[2]})
+	assert.True(t, numWrites == 1)
+
 	assert.Error(t, testWrite(topology.ConsistencyLevelMajority))
-	assert.True(t, numNodesWithTaggedWrite(t, nodes) == 1)
+	numWrites = numNodesWithTaggedWrite(t, []*testSetup{nodes[1], nodes[2]})
+	assert.True(t, numWrites == 1)
+
 	assert.Error(t, testWrite(topology.ConsistencyLevelAll))
-	assert.True(t, numNodesWithTaggedWrite(t, nodes) == 1)
+	numWrites = numNodesWithTaggedWrite(t, []*testSetup{nodes[1], nodes[2]})
+	assert.True(t, numWrites == 1)
 }
 
 func TestTaggedAddNodeQuorumAllUp(t *testing.T) {
@@ -206,12 +218,18 @@ func TestTaggedAddNodeQuorumAllUp(t *testing.T) {
 	require.NoError(t, nodes[1].startServer())
 	require.NoError(t, nodes[2].startServer())
 	require.NoError(t, nodes[3].startServer())
+
 	assert.NoError(t, testWrite(topology.ConsistencyLevelOne))
-	assert.True(t, numNodesWithTaggedWrite(t, nodes) >= 1)
+	numWrites := numNodesWithTaggedWrite(t, []*testSetup{nodes[1], nodes[2]})
+	assert.True(t, numWrites == 2)
+
 	assert.NoError(t, testWrite(topology.ConsistencyLevelMajority))
-	assert.True(t, numNodesWithTaggedWrite(t, nodes) == 2)
+	numWrites = numNodesWithTaggedWrite(t, []*testSetup{nodes[1], nodes[2]})
+	assert.True(t, numWrites == 2)
+
 	assert.Error(t, testWrite(topology.ConsistencyLevelAll))
-	assert.True(t, numNodesWithTaggedWrite(t, nodes) == 2)
+	numWrites = numNodesWithTaggedWrite(t, []*testSetup{nodes[1], nodes[2]})
+	assert.True(t, numWrites == 2)
 }
 
 func makeTestWriteTagged(
