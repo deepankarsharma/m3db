@@ -253,6 +253,7 @@ type testOptions interface {
 	SetIndexingEnabled(b bool) testOptions
 }
 
+// nolint: maligned
 type options struct {
 	namespaces                         []namespace.Metadata
 	nsInitializer                      namespace.Initializer
