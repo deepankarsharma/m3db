@@ -186,21 +186,16 @@ func ToRPCTaggedResult(queryResult index.QueryResults) (*rpc.FetchTaggedResult_,
 	result.Exhaustive = queryResult.Exhaustive
 	// Make Elements an initialized empty array for JSON serialization as empty array than null
 	result.Elements = make([]*rpc.FetchTaggedIDResult_, 0)
-	iter := queryResult.Iter
+	iter := queryResult.Iterator
 	for iter.Next() {
 		ns, id, tags := iter.Current()
 		elem := &rpc.FetchTaggedIDResult_{
 			NameSpace: ns.String(),
 			ID:        id.String(),
 		}
-		defer tags.Close()
-		for tags.Next() {
-			t := tags.Current()
+		for _, t := range tags {
 			elem.TagNames = append(elem.TagNames, t.Name.String())
 			elem.TagValues = append(elem.TagValues, t.Value.String())
-		}
-		if err := tags.Err(); err != nil {
-			elem.Err = ToRPCError(err)
 		}
 	}
 
