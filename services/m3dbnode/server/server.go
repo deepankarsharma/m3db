@@ -210,7 +210,7 @@ func Run(runOpts RunOptions) {
 		SetBlockSize(cfg.CommitLog.BlockSize))
 
 	// Set the indexing configuration
-	if cfg.Index != nil && cfg.Index.Enabled {
+	if cfg.Index.Enabled {
 		opts = opts.SetIndexingEnabled(true)
 	}
 

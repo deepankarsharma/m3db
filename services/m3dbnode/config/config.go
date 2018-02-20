@@ -87,7 +87,7 @@ type Configuration struct {
 	CommitLog CommitLogPolicy `yaml:"commitlog"`
 
 	// The indexing configuration for the node.
-	Index *IndexingConfiguration `yaml:"index"`
+	Index IndexingConfiguration `yaml:"index"`
 
 	// The repair policy for repairing in-memory data.
 	Repair RepairPolicy `yaml:"repair"`
