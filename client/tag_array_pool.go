@@ -25,7 +25,7 @@ import (
 	"github.com/m3db/m3x/pool"
 )
 
-const defaultTagArrayPoolSize = 16384
+const defaultTagArrayPoolSize = 4096
 const defaultTagArrayCapacity = 8
 
 type tagArrayPool interface {

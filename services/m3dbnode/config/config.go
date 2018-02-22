@@ -31,6 +31,7 @@ import (
 )
 
 // Configuration is the configuration for a M3DB node.
+// nolint: maligned
 type Configuration struct {
 	// Logging configuration.
 	Logging xlog.Configuration `yaml:"logging"`
