@@ -1,4 +1,4 @@
-// +build integration_disabled
+// +build integration
 
 // Copyright (c) 2016 Uber Technologies, Inc.
 //
@@ -26,10 +26,10 @@ import (
 	"fmt"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/m3db/m3x/context"
 	"github.com/m3db/m3x/ident"
 	xtime "github.com/m3db/m3x/time"
 
@@ -37,13 +37,14 @@ import (
 )
 
 // This test writes a larget number of unique series' with tags concurrently.
+// TODO(prateek): this doesn't do anything too complicated, should it be removed?
 func TestIndexLargeCardinalityHighConcurrency(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow() // Just skip if we're doing a short run
 	}
 
-	concurrency := 2
-	writeEach := 2
+	concurrency := 16
+	writeEach := 8192
 	maxNumTags := 10
 
 	genIDTags := func(i int, j int) (ident.ID, ident.TagIterator) {
@@ -60,7 +61,7 @@ func TestIndexLargeCardinalityHighConcurrency(t *testing.T) {
 	}
 
 	// Test setup
-	testOpts := newTestOptions(t) // .SetIndexingEnabled(true)
+	testOpts := newTestOptions(t).SetIndexingEnabled(true)
 	testSetup, err := newTestSetup(t, testOpts, nil)
 	require.NoError(t, err)
 	defer testSetup.close()
@@ -77,27 +78,36 @@ func TestIndexLargeCardinalityHighConcurrency(t *testing.T) {
 		log.Debug("server is now down")
 	}()
 
-	var wg sync.WaitGroup
-	now := time.Now()
+	client := testSetup.m3dbClient
+	session, err := client.DefaultSession()
+	require.NoError(t, err)
+
+	var (
+		wg             sync.WaitGroup
+		numTotalErrors uint32
+	)
+	now := testSetup.db.Options().ClockOptions().NowFn()()
+	start := time.Now()
 	log.Info("starting data write")
 
 	for i := 0; i < concurrency; i++ {
 		wg.Add(1)
-		idx := 0
+		idx := i
 		go func() {
-			log.Infof("starting write %d", idx)
-			ctx := context.NewContext()
-			defer ctx.BlockingClose()
+			numErrors := uint32(0)
 			for j := 0; j < writeEach; j++ {
 				id, tags := genIDTags(idx, j)
-				err := testSetup.db.WriteTagged(ctx, md.ID(), id, tags, now, float64(1.0), xtime.Second, nil)
-				require.NoError(t, err)
+				err := session.WriteTagged(md.ID(), id, tags, now, float64(1.0), xtime.Second, nil)
+				if err != nil {
+					numErrors++
+				}
 			}
-			log.Infof("finishing write %d", idx)
+			atomic.AddUint32(&numTotalErrors, numErrors)
 			wg.Done()
 		}()
 	}
 
 	wg.Wait()
-	log.Infof("test data written in %v", time.Since(now))
+	require.Zero(t, numTotalErrors)
+	log.Infof("test data written in %v", time.Since(start))
 }
