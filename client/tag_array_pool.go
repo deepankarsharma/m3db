@@ -25,10 +25,14 @@ import (
 	"github.com/m3db/m3x/pool"
 )
 
-const defaultTagArrayPoolSize = 4096
-const defaultTagArrayCapacity = 8
+// DefaultTagArrayPoolSize ...
+const DefaultTagArrayPoolSize = 65536
 
-type tagArrayPool interface {
+// DefaultTagArrayCapacity ...
+const DefaultTagArrayCapacity = 8
+
+// TagArrayPool ...
+type TagArrayPool interface {
 	// Init pool
 	Init()
 
@@ -44,8 +48,10 @@ type poolOfIdentTags struct {
 	capacity int
 }
 
-func newTagArrayPool(
-	opts pool.ObjectPoolOptions, capacity int) tagArrayPool {
+// TODO(prateek): migrate to m3x/ident
+// NewTagArrayPool ...
+func NewTagArrayPool(
+	opts pool.ObjectPoolOptions, capacity int) TagArrayPool {
 
 	p := pool.NewObjectPool(opts)
 	return &poolOfIdentTags{p, capacity}

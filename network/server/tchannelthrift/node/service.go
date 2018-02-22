@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/m3db/m3db/client"
 	"github.com/m3db/m3db/clock"
 	"github.com/m3db/m3db/generated/thrift/rpc"
 	"github.com/m3db/m3db/network/server/tchannelthrift"
@@ -103,6 +104,7 @@ type service struct {
 	nowFn                    clock.NowFn
 	metrics                  serviceMetrics
 	idPool                   ident.Pool
+	tagArrayPool             client.TagArrayPool
 	checkedBytesPool         pool.ObjectPool
 	blockMetadataPool        tchannelthrift.BlockMetadataPool
 	blockMetadataV2Pool      tchannelthrift.BlockMetadataV2Pool
@@ -125,12 +127,20 @@ func NewService(db storage.Database, opts tchannelthrift.Options) rpc.TChanNode 
 		map[string]string{"serviceName": "node"},
 	)
 
+	tagArrayPoolOpts := pool.NewObjectPoolOptions().
+		SetSize(client.DefaultTagArrayPoolSize).
+		SetInstrumentOptions(iopts.SetMetricsScope(
+			scope.SubScope("tag-array-pool")))
+	tagArrayPool := client.NewTagArrayPool(tagArrayPoolOpts, client.DefaultTagArrayCapacity)
+	tagArrayPool.Init()
+
 	s := &service{
 		db:                       db,
 		opts:                     opts,
 		nowFn:                    db.Options().ClockOptions().NowFn(),
 		metrics:                  newServiceMetrics(scope, iopts.MetricsSamplingRate()),
 		idPool:                   db.Options().IdentifierPool(),
+		tagArrayPool:             tagArrayPool,
 		blockMetadataPool:        opts.BlockMetadataPool(),
 		blockMetadataV2Pool:      opts.BlockMetadataV2Pool(),
 		blockMetadataSlicePool:   opts.BlockMetadataSlicePool(),
@@ -1016,12 +1026,14 @@ func (s *service) newID(ctx context.Context, id []byte) ident.ID {
 	return s.idPool.GetBinaryID(ctx, checkedBytes)
 }
 
+// TODO(prateek): could we avoid the extra copy here by creating a wrapper iterator over the input bytes?
 func (s *service) newTagsIter(ctx context.Context, names [][]byte, values [][]byte) (ident.TagIterator, error) {
 	if len(names) != len(values) {
 		return nil, fmt.Errorf("unequal tag names and values")
 	}
+	tags := s.tagArrayPool.Get()
 	// TODO(prateek): pool ident.Tags allocations here
-	tags := make(ident.Tags, 0, len(names))
+	// tags := make(ident.Tags, 0, len(names))
 	for i := range names {
 		name := names[i]
 		value := values[i]
@@ -1030,7 +1042,7 @@ func (s *service) newTagsIter(ctx context.Context, names [][]byte, values [][]by
 			Value: s.newID(ctx, value),
 		})
 	}
-	return ident.NewTagSliceIterator(tags), nil
+	return newTagSliceIterator(tags, s.tagArrayPool), nil
 }
 
 func (s *service) newCloseableMetadataResult(

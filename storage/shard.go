@@ -856,6 +856,7 @@ func (s *dbShard) newShardEntry(id ident.ID, tags ident.TagIterator) *dbShardEnt
 }
 
 // TODO(prateek): add ident.Pool method: `CloneTags(TagIterator) Tags`
+// TODO(prateek): use tag array pooling too
 func (s *dbShard) cloneTags(tags ident.TagIterator) ident.Tags {
 	tags = tags.Clone()
 	clone := make(ident.Tags, 0, tags.Remaining())

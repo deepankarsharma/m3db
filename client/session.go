@@ -150,7 +150,7 @@ type session struct {
 	fetchBatchOpPool                 *fetchBatchOpPool
 	fetchBatchOpArrayArrayPool       *fetchBatchOpArrayArrayPool
 	iteratorArrayPool                encoding.IteratorArrayPool
-	tagArrayPool                     tagArrayPool
+	tagArrayPool                     TagArrayPool
 	readerSliceOfSlicesIteratorPool  *readerSliceOfSlicesIteratorPool
 	multiReaderIteratorPool          encoding.MultiReaderIteratorPool
 	seriesIteratorPool               encoding.SeriesIteratorPool
@@ -269,11 +269,11 @@ func newSession(opts Options) (clientSession, error) {
 	s.fetchAttemptPool.Init()
 
 	tagArrayPoolOpts := pool.NewObjectPoolOptions().
-		SetSize(defaultTagArrayPoolSize).
+		SetSize(DefaultTagArrayPoolSize).
 		SetInstrumentOptions(opts.InstrumentOptions().SetMetricsScope(
 			scope.SubScope("tag-array-pool"),
 		))
-	s.tagArrayPool = newTagArrayPool(tagArrayPoolOpts, defaultTagArrayCapacity)
+	s.tagArrayPool = NewTagArrayPool(tagArrayPoolOpts, DefaultTagArrayCapacity)
 	s.tagArrayPool.Init()
 
 	if opts, ok := opts.(AdminOptions); ok {
