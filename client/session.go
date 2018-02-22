@@ -150,6 +150,7 @@ type session struct {
 	fetchBatchOpPool                 *fetchBatchOpPool
 	fetchBatchOpArrayArrayPool       *fetchBatchOpArrayArrayPool
 	iteratorArrayPool                encoding.IteratorArrayPool
+	tagArrayPool                     tagArrayPool
 	readerSliceOfSlicesIteratorPool  *readerSliceOfSlicesIteratorPool
 	multiReaderIteratorPool          encoding.MultiReaderIteratorPool
 	seriesIteratorPool               encoding.SeriesIteratorPool
@@ -258,6 +259,7 @@ func newSession(opts Options) (clientSession, error) {
 		))
 	s.writeAttemptPool = newWriteAttemptPool(s, writeAttemptPoolOpts)
 	s.writeAttemptPool.Init()
+
 	fetchAttemptPoolOpts := pool.NewObjectPoolOptions().
 		SetSize(opts.FetchBatchOpPoolSize()).
 		SetInstrumentOptions(opts.InstrumentOptions().SetMetricsScope(
@@ -265,6 +267,14 @@ func newSession(opts Options) (clientSession, error) {
 		))
 	s.fetchAttemptPool = newFetchAttemptPool(s, fetchAttemptPoolOpts)
 	s.fetchAttemptPool.Init()
+
+	tagArrayPoolOpts := pool.NewObjectPoolOptions().
+		SetSize(defaultTagArrayPoolSize).
+		SetInstrumentOptions(opts.InstrumentOptions().SetMetricsScope(
+			scope.SubScope("tag-array-pool"),
+		))
+	s.tagArrayPool = newTagArrayPool(tagArrayPoolOpts, defaultTagArrayCapacity)
+	s.tagArrayPool.Init()
 
 	if opts, ok := opts.(AdminOptions); ok {
 		s.origin = opts.Origin()
@@ -833,7 +843,7 @@ func (s *session) writeAttempt(
 	// and consistency level checks.
 	nsID := s.idPool.Clone(namespace)
 	tsID := s.idPool.Clone(id)
-	tags := ident.Tags{}
+	var tags ident.Tags
 	if wType == taggedWriteAttemptType {
 		tags = s.cloneTags(inputTags)
 	}
@@ -922,7 +932,8 @@ func (s *session) writeAttempt(
 // TODO(prateek): add ident.Pool method: `CloneTags(TagIterator) Tags`
 func (s *session) cloneTags(tags ident.TagIterator) ident.Tags {
 	tags = tags.Clone()
-	clone := make(ident.Tags, 0, tags.Remaining())
+	clone := s.tagArrayPool.Get()
+	// clone := make(ident.Tags, 0, tags.Remaining())
 	defer tags.Close()
 	for tags.Next() {
 		t := tags.Current()

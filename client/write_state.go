@@ -72,10 +72,13 @@ func (w *writeState) close() {
 
 	w.nsID.Finalize()
 	w.tsID.Finalize()
-	w.tags.Finalize()
+
+	if tags := w.tags; tags != nil {
+		w.session.tagArrayPool.Put(tags)
+	}
 
 	w.op, w.majority, w.pending, w.success = nil, 0, 0, 0
-	w.nsID, w.tsID = nil, nil
+	w.nsID, w.tsID, w.tags = nil, nil, nil
 
 	for i := range w.errors {
 		w.errors[i] = nil
